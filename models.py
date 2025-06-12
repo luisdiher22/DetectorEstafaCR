@@ -1,14 +1,18 @@
-"""
-Data models for the scam detection app.
-"""
+"""Database models for the scam detection app."""
 
-class Message:
-    """
-    Represents a message that might be a scam.
-    """
-    def __init__(self, phone_number: int = None, text_message: str = None):
-        self.phone_number = phone_number
-        self.text_message = text_message
+from flask_sqlalchemy import SQLAlchemy
+
+# SQLAlchemy instance is created here so it can be imported in app.py
+# without causing circular imports.
+db = SQLAlchemy()
+
+class Message(db.Model):
+    """Represents a submitted message."""
+    id = db.Column(db.Integer, primary_key=True)
+    phone_number = db.Column(db.BigInteger)
+    text_message = db.Column(db.Text)
 
     def __repr__(self):
-        return f"Message(phone_number={self.phone_number}, text_message='{self.text_message}')"
+        snippet = (self.text_message or "")[:30]
+        return f"<Message {self.phone_number} - {snippet}>"
+
