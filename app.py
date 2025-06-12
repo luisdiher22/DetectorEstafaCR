@@ -36,33 +36,43 @@ def check_scam():
             # Keep phone_number as None if conversion fails
             pass
 
-    # Instantiate Message object - useful if you expand its role later
-    # message_obj = Message(phone_number=phone_number, text_message=text_message)
-
-    scam_detected = False
-
-    # Scam detection logic using the database
-    if phone_number is not None:
-        existing_phone = Message.query.filter_by(phone_number=phone_number).first()
-        if existing_phone:
-            scam_detected = True
-
-    if text_message:
-        existing_text = Message.query.filter_by(text_message=text_message).first()
-        if existing_text:
-            scam_detected = True
-
-    result_message = "Posible estafa detectada!" if scam_detected else "Todo parece seguro."
-
     # Persist the submitted message to the database
     new_msg = Message(phone_number=phone_number, text_message=text_message)
     db.session.add(new_msg)
     db.session.commit()
 
-    return render_template('index.html',
-                           result_message=result_message,
-                           previous_phone_number=phone_number_str if phone_number_str else '', # Pass back original string or empty
-                           previous_text_message=text_message)
+    # Determine how many times this phone number or message has been reported
+    report_count = 0
+    if phone_number is not None:
+        report_count = Message.query.filter_by(phone_number=phone_number).count()
+
+    if text_message:
+        text_count = Message.query.filter_by(text_message=text_message).count()
+        report_count = max(report_count, text_count)
+    if phone_number is None and not text_message:
+        report_count = 1
+
+    # Craft warning message based on the number of reports
+    if report_count == 1:
+        result_message = (
+            "Este número no ha sido reportado aún, pero por favor ten cuidado. "
+            "Aquí hay algunas maneras fáciles de verificar si un mensaje es fraude."
+        )
+    elif 1 < report_count < 5:
+        result_message = (
+            f"Este mensaje ha sido reportado {report_count} veces y es muy probable que sea una estafa."
+        )
+    else:
+        result_message = (
+            f"Este mensaje ha sido reportado {report_count} veces y es casi seguro que se trata de una estafa."
+        )
+
+    return render_template(
+        'index.html',
+        result_message=result_message,
+        previous_phone_number=phone_number_str if phone_number_str else '',
+        previous_text_message=text_message,
+    )
 
 if __name__ == '__main__':
     app.run(debug=True)

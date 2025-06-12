@@ -37,7 +37,7 @@ class TestScamApp(unittest.TestCase):
             'text_message': 'Hello this is a test'
         })
         self.assertEqual(response.status_code, 200)
-        self.assertIn(b"Todo parece seguro.", response.data)
+        self.assertIn(b"no ha sido reportado", response.data)
         with main_app.app.app_context():
             msg = Message.query.filter_by(phone_number=1234567890).first()
             self.assertIsNotNone(msg)
@@ -52,7 +52,7 @@ class TestScamApp(unittest.TestCase):
             'text_message': 'A new message for a known number'
         })
         self.assertEqual(response.status_code, 200)
-        self.assertIn(b"Posible estafa detectada!", response.data)
+        self.assertIn(b"ha sido reportado 2 veces", response.data)
         with main_app.app.app_context():
             msgs = Message.query.filter_by(phone_number=1112223333).all()
             self.assertEqual(len(msgs), 2)
@@ -66,7 +66,7 @@ class TestScamApp(unittest.TestCase):
             'text_message': 'This is a known scam message'
         })
         self.assertEqual(response.status_code, 200)
-        self.assertIn(b"Posible estafa detectada!", response.data)
+        self.assertIn(b"ha sido reportado 2 veces", response.data)
         with main_app.app.app_context():
             msgs = Message.query.filter_by(text_message='This is a known scam message').all()
             self.assertEqual(len(msgs), 2)
@@ -77,7 +77,7 @@ class TestScamApp(unittest.TestCase):
             'text_message': ''
         })
         self.assertEqual(response.status_code, 200)
-        self.assertIn(b"Todo parece seguro.", response.data)
+        self.assertIn(b"no ha sido reportado", response.data)
         with main_app.app.app_context():
             msg = Message.query.filter_by(phone_number=5555555555).first()
             self.assertIsNotNone(msg)
@@ -89,7 +89,7 @@ class TestScamApp(unittest.TestCase):
             'text_message': 'Just a message, no number'
         })
         self.assertEqual(response.status_code, 200)
-        self.assertIn(b"Todo parece seguro.", response.data)
+        self.assertIn(b"no ha sido reportado", response.data)
         with main_app.app.app_context():
             msg = Message.query.filter_by(text_message='Just a message, no number').first()
             self.assertIsNotNone(msg)
@@ -104,7 +104,7 @@ class TestScamApp(unittest.TestCase):
             'text_message': ''
         })
         self.assertEqual(response.status_code, 200)
-        self.assertIn(b"Posible estafa detectada!", response.data)
+        self.assertIn(b"ha sido reportado 2 veces", response.data)
         with main_app.app.app_context():
             msgs = Message.query.filter_by(phone_number=7778889999).all()
             self.assertEqual(len(msgs), 2)
@@ -118,7 +118,7 @@ class TestScamApp(unittest.TestCase):
             'text_message': 'Secret scam phrase alone'
         })
         self.assertEqual(response.status_code, 200)
-        self.assertIn(b"Posible estafa detectada!", response.data)
+        self.assertIn(b"ha sido reportado 2 veces", response.data)
         with main_app.app.app_context():
             msgs = Message.query.filter_by(text_message='Secret scam phrase alone').all()
             self.assertEqual(len(msgs), 2)
@@ -129,7 +129,7 @@ class TestScamApp(unittest.TestCase):
             'text_message': ''
         })
         self.assertEqual(response.status_code, 200)
-        self.assertIn(b"Todo parece seguro.", response.data)
+        self.assertIn(b"no ha sido reportado", response.data)
         self.assertEqual(self._count_messages(), 1)
 
     def test_phone_number_with_spaces_gets_stripped_and_converted(self):
@@ -138,7 +138,7 @@ class TestScamApp(unittest.TestCase):
             'text_message': 'Test message with spaced number'
         })
         self.assertEqual(response.status_code, 200)
-        self.assertIn(b"Todo parece seguro.", response.data)
+        self.assertIn(b"no ha sido reportado", response.data)
         with main_app.app.app_context():
             msg = Message.query.filter_by(phone_number=123).first()
             self.assertIsNotNone(msg)
@@ -149,11 +149,27 @@ class TestScamApp(unittest.TestCase):
             'text_message': '  A message with spaces  '
         })
         self.assertEqual(response.status_code, 200)
-        self.assertIn(b"Todo parece seguro.", response.data)
+        self.assertIn(b"no ha sido reportado", response.data)
         with main_app.app.app_context():
             msg = Message.query.filter_by(phone_number=7890123456).first()
             self.assertEqual(msg.text_message, 'A message with spaces')
             self.assertIsNotNone(Message.query.filter_by(text_message='A message with spaces').first())
+
+    def test_high_report_count_message(self):
+        with main_app.app.app_context():
+            for _ in range(5):
+                db.session.add(Message(phone_number=999999999, text_message='High count'))
+            db.session.commit()
+        response = self.client.post('/check_scam', data={
+            'phone_number': '999999999',
+            'text_message': 'High count'
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"ha sido reportado 6 veces", response.data)
+        self.assertIn(b"casi seguro", response.data)
+        with main_app.app.app_context():
+            msgs = Message.query.filter_by(phone_number=999999999).all()
+            self.assertEqual(len(msgs), 6)
 
 if __name__ == '__main__':
     unittest.main()
