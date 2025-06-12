@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scam Message Checker</title>
+    <!-- Optional: Link to a CSS file in static/ if you add one later -->
+    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"> -->
+</head>
+<body>
+    <h1>Scam Message Checker</h1>
+
+    <form action="{{ url_for('check_scam') }}" method="POST">
+        <div>
+            <label for="phone_number">Phone Number:</label>
+            <input type="number" id="phone_number" name="phone_number" value="{{ previous_phone_number if previous_phone_number is not none else '' }}">
+        </div>
+        <br>
+        <div>
+            <label for="text_message">Message:</label>
+            <textarea id="text_message" name="text_message" rows="4" cols="50">{{ previous_text_message if previous_text_message is not none else '' }}</textarea>
+        </div>
+        <br>
+        <div>
+            <button type="submit">Check Message</button>
+        </div>
+    </form>
+
+    {% if result_message %}
+    <h2>Result:</h2>
+    <p>{{ result_message }}</p>
+    {% endif %}
+
+</body>
+</html>
