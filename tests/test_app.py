@@ -1,4 +1,10 @@
+import os
+import sys
 import unittest
+
+# Ensure the project root is on the Python path so ``app`` can be imported
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+
 # To access app instance and its global vars for setup/assertions
 import app as main_app
 
