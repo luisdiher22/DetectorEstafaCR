@@ -2,13 +2,20 @@
 Main Flask application for the scam detection app.
 """
 from flask import Flask, render_template, request
-from models import Message
+from models import db, Message
 
 app = Flask(__name__)
 
-# In-memory storage for recorded data (replace with a database in a real app)
-recorded_phone_numbers = set()
-recorded_texts = set()
+# Configure SQLite database
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///messages.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Initialize SQLAlchemy with the Flask app
+db.init_app(app)
+
+# Create tables if they don't exist
+with app.app_context():
+    db.create_all()
 
 @app.route('/', methods=['GET'])
 def index():
@@ -17,20 +24,16 @@ def index():
 @app.route('/check_scam', methods=['POST'])
 def check_scam():
     phone_number_str = request.form.get('phone_number')
-    # Ensure text_message is always a string and stripped, handle None by defaulting to empty string
-    text_message = request.form.get('text_message')
-    if text_message is None:
-        text_message = ""
-    else:
-        text_message = text_message.strip()
+    # Ensure text_message is always a string and stripped
+    text_message = request.form.get('text_message') or ""
+    text_message = text_message.strip()
 
     phone_number = None
-    if phone_number_str: # Check if the string is not empty
+    if phone_number_str:
         try:
             phone_number = int(phone_number_str)
         except ValueError:
             # Keep phone_number as None if conversion fails
-            # HTML type="number" should minimize this, but good to have server-side validation
             pass
 
     # Instantiate Message object - useful if you expand its role later
@@ -38,24 +41,23 @@ def check_scam():
 
     scam_detected = False
 
-    # Scam detection logic
-    if phone_number is not None and phone_number in recorded_phone_numbers:
-        scam_detected = True
+    # Scam detection logic using the database
+    if phone_number is not None:
+        existing_phone = Message.query.filter_by(phone_number=phone_number).first()
+        if existing_phone:
+            scam_detected = True
 
-    # Ensure text_message is not empty before checking against recorded_texts
-    if text_message and text_message in recorded_texts:
-        scam_detected = True
+    if text_message:
+        existing_text = Message.query.filter_by(text_message=text_message).first()
+        if existing_text:
+            scam_detected = True
 
     result_message = "Potential scam detected!" if scam_detected else "This looks safe."
 
-    # Record data
-    # Add phone_number to records only if it's not None (i.e., was valid and provided)
-    if phone_number is not None: # This implies phone_number_str was not empty and was valid
-        recorded_phone_numbers.add(phone_number)
-
-    # Add text_message to records only if it's not an empty string
-    if text_message:
-        recorded_texts.add(text_message)
+    # Persist the submitted message to the database
+    new_msg = Message(phone_number=phone_number, text_message=text_message)
+    db.session.add(new_msg)
+    db.session.commit()
 
     return render_template('index.html',
                            result_message=result_message,
