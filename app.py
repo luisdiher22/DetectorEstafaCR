@@ -52,7 +52,7 @@ def check_scam():
         if existing_text:
             scam_detected = True
 
-    result_message = "Potential scam detected!" if scam_detected else "This looks safe."
+    result_message = "Posible estafa detectada!" if scam_detected else "Todo parece seguro."
 
     # Persist the submitted message to the database
     new_msg = Message(phone_number=phone_number, text_message=text_message)
