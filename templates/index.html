@@ -9,6 +9,14 @@
 </head>
 <body>
     <main class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
         <h1>Detector de Estafas</h1>
 
         <form action="{{ url_for('check_scam') }}" method="POST">
@@ -30,8 +38,15 @@
 
         {% if result_message %}
         <div class="result">
-            <p>{{ result_message }}</p>
+            {# Using <pre> to make newlines in result_message (like for advice) render correctly #}
+            <pre>{{ result_message }}</pre>
         </div>
+
+        {% if last_message_id %} {# Only show if we have an ID for the last message #}
+            <form method="POST" action="{{ url_for('confirm_scam', message_id=last_message_id) }}" style="margin-top: 10px;">
+                <button type="submit" class="btn btn-danger btn-sm">Confirmar que ESTE mensaje es Estafa</button>
+            </form>
+        {% endif %}
         {% endif %}
     </main>
 </body>
