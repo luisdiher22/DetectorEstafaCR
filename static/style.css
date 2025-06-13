@@ -103,6 +103,12 @@ textarea:focus {
     background-color: #f8f9fa;
 }
 
+.result pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-family: inherit;
+}
+
 .info {
     font-size: 0.9em;
     color: #555;
