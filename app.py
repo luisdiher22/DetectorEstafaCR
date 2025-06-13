@@ -3,6 +3,7 @@ Main Flask application for the scam detection app.
 """
 from flask import Flask, render_template, request, redirect, url_for, flash
 from models import db, Message
+import re
 
 app = Flask(__name__)
 
@@ -32,7 +33,7 @@ ADVICE_SNIPPETS = {
 }
 
 ENGLISH_SCAM_KEYWORDS = [
-    "winner", "congratulations", "free", "prize", "verify", # Removed "urgent"
+    "winner", "congratulations", "free", "prize", "verify", "urgent",
     "account", "password", "bank", "irs", "tax", "refund", "limited offer",
     "claim now", "act fast", "immediate action required", "confidential",
     "selected", "guaranteed", "won", "cash prize", "lottery"
@@ -106,19 +107,20 @@ def calculate_urgency(text_message: str) -> tuple[int, list[str]]:
 
     found_unmapped_english_keyword = False
     for eng_keyword in ENGLISH_SCAM_KEYWORDS:
-        if eng_keyword == "verify": # Specific handling for "verify"
-            if "verify" in text_message_lower:
+        pattern = re.compile(r"\b" + re.escape(eng_keyword) + r"\b")
+        if eng_keyword == "verify":
+            if pattern.search(text_message_lower):
                 score += 2
                 found_unmapped_english_keyword = True
-        elif eng_keyword == "bank": # Specific handling for "bank"
-            if "bank" in text_message_lower:
+        elif eng_keyword == "bank":
+            if pattern.search(text_message_lower):
                 score += 2
                 detected_patterns_set.add("keyword_banco")
-        elif eng_keyword == "password": # Specific handling for "password"
-            if "password" in text_message_lower:
+        elif eng_keyword == "password":
+            if pattern.search(text_message_lower):
                 score += 2
                 detected_patterns_set.add("keyword_contrasena")
-        elif eng_keyword in text_message_lower: # General handling for other English keywords
+        elif pattern.search(text_message_lower):
             score += 2
             pattern_to_add = english_keyword_mappings.get(eng_keyword)
             if pattern_to_add:
@@ -170,9 +172,9 @@ def check_scam():
     text_message = request.form.get('text_message') or ""
     text_message = text_message.strip()
 
-    # Calculate urgency score
-    urgency_score = calculate_urgency(text_message)
-    is_flagged_scam = urgency_score >= 5
+    # Calculate urgency score and detected patterns
+    score_value, patterns_detected = calculate_urgency(text_message)
+    is_flagged_scam = score_value >= 5
 
     phone_number = None
     if phone_number_str:
@@ -192,13 +194,6 @@ def check_scam():
         if existing_exact_message:
             user_confirmed_scam_count_from_exact_match = existing_exact_message.user_confirmed_scam_count
 
-    # Calculate urgency score and detected patterns
-    # Explicitly using new variable names as per subtask #19 instructions
-    score_value, patterns_detected = calculate_urgency(text_message)
-
-    # Use the new variable 'score_value' for integer operations
-    is_flagged_scam = score_value >= 5
-
     # This phone_number variable is for the current submission.
     # The one used for exact match query was derived from phone_number_str directly.
     # Re-evaluate phone_number for saving and general report_count
@@ -207,32 +202,7 @@ def check_scam():
         try:
             phone_number_for_saving_and_reporting = int(phone_number_str)
         except ValueError:
-            pass # Keep it None
-
-    # Check for existing exact message to get its user_confirmed_scam_count
-    user_confirmed_scam_count_from_exact_match = 0
-    if text_message: # Only query if there's a message
-        query_filter = [Message.text_message == text_message]
-        if phone_number is not None:
-            query_filter.append(Message.phone_number == phone_number)
-
-        existing_exact_message = Message.query.filter(*query_filter).first()
-        if existing_exact_message:
-            user_confirmed_scam_count_from_exact_match = existing_exact_message.user_confirmed_scam_count
-
-    # Calculate urgency score and detected patterns
-    urgency_score, detected_patterns = calculate_urgency(text_message)
-    is_flagged_scam = urgency_score >= 5
-
-    # This phone_number variable is for the current submission.
-    # The one used for exact match query was derived from phone_number_str directly.
-    # Re-evaluate phone_number for saving and general report_count
-    phone_number_for_saving_and_reporting = None
-    if phone_number_str:
-        try:
-            phone_number_for_saving_and_reporting = int(phone_number_str)
-        except ValueError:
-            pass # Keep it None
+            pass  # Keep it None
 
     # Persist the submitted message to the database
     # Note: if an exact match exists, we are creating a new entry rather than updating.
@@ -314,7 +284,7 @@ def confirm_scam(message_id):
         db.session.commit()
         flash(f"Gracias por confirmar el mensaje #{message_id} como estafa. Su contribución ayuda a proteger a otros.", "success")
     else:
-        flash(f"Error: Mensaje #{message_id} no encontrado.", "danger") # Changed category to 'danger'
+        flash(f"No se encontró el mensaje #{message_id} para confirmar.", "danger")
     return redirect(url_for('index'))
 
 if __name__ == '__main__':
