@@ -247,7 +247,10 @@ def check_scam():
         elif report_count == 1: # First time seen, not flagged by content, no user confirmations for this exact message
             result_message = (
                 "Este número no ha sido reportado aún, pero por favor ten cuidado. "
-                "Aquí hay algunas maneras fáciles de verificar si un mensaje es fraude."
+                "Aquí hay algunos consejos para determinar si un mensaje es estafa:\n"
+                "- No hagas clic en enlaces sospechosos ni descargues archivos de remitentes desconocidos.\n"
+                "- Verifica contactando directamente a la entidad que supuestamente env\xeda el mensaje.\n"
+                "- Desconf\xeda de premios u ofertas que suenan demasiado buenas para ser verdad."
             )
         elif 1 < report_count < 5:
             result_message = (
