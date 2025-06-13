@@ -17,6 +17,42 @@ db.init_app(app)
 with app.app_context():
     db.create_all()
 
+def calculate_urgency(text_message: str) -> int:
+    """Calculates the urgency score of a text message."""
+    score = 0
+
+    # Define Spanish scam-related keywords
+    keywords = [
+        "premio", "ganaste", "banco", "contraseña", "urgente",
+        "oferta limitada", "gratis", "confidencial", "verificar",
+        "actualizar", "inmediato"
+    ]
+
+    # Check for keywords (case-insensitive)
+    for keyword in keywords:
+        if keyword in text_message.lower():
+            score += 2
+
+    # Check for URLs
+    if "http://" in text_message or "https://" in text_message:
+        score += 3
+
+    # Check for excessive uppercase
+    alphabetic_chars = [char for char in text_message if char.isalpha()]
+    if alphabetic_chars: # Avoid division by zero
+        uppercase_chars = [char for char in alphabetic_chars if char.isupper()]
+        if (len(uppercase_chars) / len(alphabetic_chars)) > 0.5:
+            score += 2
+
+    # Check for excessive special characters
+    non_space_chars = [char for char in text_message if not char.isspace()]
+    if non_space_chars: # Avoid division by zero
+        special_chars = [char for char in non_space_chars if not char.isalnum()]
+        if (len(special_chars) / len(non_space_chars)) > 0.2:
+            score += 1
+
+    return score
+
 @app.route('/', methods=['GET'])
 def index():
     return render_template('index.html')
@@ -28,6 +64,10 @@ def check_scam():
     text_message = request.form.get('text_message') or ""
     text_message = text_message.strip()
 
+    # Calculate urgency score
+    urgency_score = calculate_urgency(text_message)
+    is_flagged_scam = urgency_score >= 5
+
     phone_number = None
     if phone_number_str:
         try:
@@ -37,7 +77,12 @@ def check_scam():
             pass
 
     # Persist the submitted message to the database
-    new_msg = Message(phone_number=phone_number, text_message=text_message)
+    new_msg = Message(
+        phone_number=phone_number,
+        text_message=text_message,
+        urgency_score=urgency_score,
+        is_flagged_scam=is_flagged_scam
+    )
     db.session.add(new_msg)
     db.session.commit()
 
@@ -52,20 +97,26 @@ def check_scam():
     if phone_number is None and not text_message:
         report_count = 1
 
-    # Craft warning message based on the number of reports
-    if report_count == 1:
-        result_message = (
-            "Este número no ha sido reportado aún, pero por favor ten cuidado. "
-            "Aquí hay algunas maneras fáciles de verificar si un mensaje es fraude."
-        )
-    elif 1 < report_count < 5:
-        result_message = (
-            f"Este mensaje ha sido reportado {report_count} veces y es muy probable que sea una estafa."
-        )
-    else:
-        result_message = (
-            f"Este mensaje ha sido reportado {report_count} veces y es casi seguro que se trata de una estafa."
-        )
+    # Craft warning message based on the number of reports and urgency
+    if is_flagged_scam:
+        if report_count == 1:
+            result_message = "Este mensaje es sospechoso y podría ser una estafa. Contiene elementos comúnmente usados en fraudes."
+        else: # report_count > 1
+            result_message = f"Este mensaje ha sido reportado {report_count} veces y contiene elementos sospechosos. Es muy probable que sea una estafa."
+    else: # not is_flagged_scam
+        if report_count == 1:
+            result_message = (
+                "Este número no ha sido reportado aún, pero por favor ten cuidado. "
+                "Aquí hay algunas maneras fáciles de verificar si un mensaje es fraude."
+            )
+        elif 1 < report_count < 5:
+            result_message = (
+                f"Este mensaje ha sido reportado {report_count} veces y es muy probable que sea una estafa."
+            )
+        else: # report_count >= 5
+            result_message = (
+                f"Este mensaje ha sido reportado {report_count} veces y es casi seguro que se trata de una estafa."
+            )
 
     return render_template(
         'index.html',
