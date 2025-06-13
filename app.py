@@ -170,6 +170,10 @@ def check_scam():
     text_message = request.form.get('text_message') or ""
     text_message = text_message.strip()
 
+    # Calculate urgency score
+    urgency_score = calculate_urgency(text_message)
+    is_flagged_scam = urgency_score >= 5
+
     phone_number = None
     if phone_number_str:
         try:
@@ -205,6 +209,31 @@ def check_scam():
         except ValueError:
             pass # Keep it None
 
+    # Check for existing exact message to get its user_confirmed_scam_count
+    user_confirmed_scam_count_from_exact_match = 0
+    if text_message: # Only query if there's a message
+        query_filter = [Message.text_message == text_message]
+        if phone_number is not None:
+            query_filter.append(Message.phone_number == phone_number)
+
+        existing_exact_message = Message.query.filter(*query_filter).first()
+        if existing_exact_message:
+            user_confirmed_scam_count_from_exact_match = existing_exact_message.user_confirmed_scam_count
+
+    # Calculate urgency score and detected patterns
+    urgency_score, detected_patterns = calculate_urgency(text_message)
+    is_flagged_scam = urgency_score >= 5
+
+    # This phone_number variable is for the current submission.
+    # The one used for exact match query was derived from phone_number_str directly.
+    # Re-evaluate phone_number for saving and general report_count
+    phone_number_for_saving_and_reporting = None
+    if phone_number_str:
+        try:
+            phone_number_for_saving_and_reporting = int(phone_number_str)
+        except ValueError:
+            pass # Keep it None
+
     # Persist the submitted message to the database
     # Note: if an exact match exists, we are creating a new entry rather than updating.
     # The report_count logic later will count all entries.
@@ -212,7 +241,9 @@ def check_scam():
     new_msg = Message(
         phone_number=phone_number_for_saving_and_reporting,
         text_message=text_message,
+
         urgency_score=score_value,  # Ensure this uses the integer part
+
         is_flagged_scam=is_flagged_scam
         # user_confirmed_scam_count will default to 0 for this new message.
         # If this exact message is confirmed later, its own count will go up.
@@ -258,9 +289,11 @@ def check_scam():
             )
 
     # Append advice snippets
+
     if patterns_detected: # Use the new variable name for patterns
         result_message += "\n\n--- Consejos Adicionales ---"
         for pattern_key in patterns_detected: # Use the new variable name
+
             advice = ADVICE_SNIPPETS.get(pattern_key)
             if advice:
                 result_message += f"\n- {advice}"

@@ -30,6 +30,7 @@ class TestScamApp(unittest.TestCase):
             msg = Message.query.order_by(Message.id.desc()).first()
             return msg.id if msg else None
 
+    # --- Existing Tests (some assertions updated for new logic) ---
     def test_index_page_loads(self):
         response = self.client.get('/')
         self.assertEqual(response.status_code, 200)
@@ -68,8 +69,10 @@ class TestScamApp(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("Este número no ha sido reportado aún", response.data.decode('utf-8'))
 
+
     def test_empty_submission(self):
         response = self.client.post('/check_scam', data={'phone_number': '', 'text_message': ''})
+
         self.assertEqual(response.status_code, 200)
         self.assertIn("Este número no ha sido reportado aún", response.data.decode('utf-8'))
 
@@ -87,6 +90,7 @@ class TestScamApp(unittest.TestCase):
         score, patterns = calculate_urgency("ganaste un premio")
         self.assertEqual(score, 4)
         self.assertIn("keyword_premio", patterns)
+
 
         score, patterns = calculate_urgency("urgente verificar contraseña")
         self.assertEqual(score, 6)
@@ -153,6 +157,7 @@ class TestScamApp(unittest.TestCase):
         self.assertNotIn("--- Consejos Adicionales ---", resp_data)
 
     def test_confirm_scam_route_increments_count(self):
+
         with main_app.app.app_context():
             self.client.post(main_app.url_for('check_scam'), data={'text_message': 'confirm this scam', 'phone_number': '111'})
             message_id = self._get_last_message_id()
