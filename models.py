@@ -11,12 +11,6 @@ class Message(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     phone_number = db.Column(db.BigInteger)
     text_message = db.Column(db.Text)
-    urgency_score = db.Column(db.Integer, default=0)
-    is_flagged_scam = db.Column(db.Boolean, default=False)
-<<<<<<< HEAD
-    user_confirmed_scam_count = db.Column(db.Integer, default=0, nullable=False)
-=======
->>>>>>> 00380016319696efeea131121ca52c44a84d7488
 
     def __repr__(self):
         snippet = (self.text_message or "")[:30]
