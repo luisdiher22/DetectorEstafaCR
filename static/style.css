@@ -1,8 +1,8 @@
 body {
-    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    font-family: 'Roboto', "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
     margin: 0;
     padding: 0;
-    background-color: #add8e6; /* Changed from #eef1f5 */
+    background: linear-gradient(135deg, #e0f0ff, #f9fcff);
     color: #333;
     line-height: 1.6;
 }
@@ -11,16 +11,17 @@ body {
     max-width: 600px;
     margin: 40px auto;
     padding: 2rem;
-    background-color: #f0f8ff; /* Changed from #fff */
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    background-color: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 h1 {
     text-align: center;
-    font-size: 1.8em;
+    font-size: 2em;
     margin-top: 0;
     margin-bottom: 1.5rem;
+    font-weight: 700;
 }
 
 label {
@@ -28,6 +29,10 @@ label {
     margin-bottom: 0.5em;
     font-size: 1.1em;
     color: #444;
+}
+
+.form-group {
+    margin-bottom: 1rem;
 }
 
 input[type="number"],
@@ -52,7 +57,7 @@ textarea:focus {
     border-color: #1e88e5;
 }
 
-button {
+.btn-primary {
     width: 100%;
     padding: 0.7em;
     font-size: 1.1em;
@@ -64,8 +69,29 @@ button {
     transition: background-color 0.2s ease-in-out;
 }
 
-button:hover {
+.btn-primary:hover {
     background-color: #1565c0;
+}
+
+.btn {
+    display: inline-block;
+    padding: 0.5em 1em;
+    border-radius: 4px;
+    text-decoration: none;
+}
+
+.btn-danger {
+    background-color: #dc3545;
+    color: #fff;
+    border: none;
+}
+
+.btn-danger:hover {
+    background-color: #c82333;
+}
+
+.btn-sm {
+    font-size: 0.9em;
 }
 
 .result {
@@ -81,4 +107,24 @@ button:hover {
     font-size: 0.9em;
     color: #555;
     margin-top: 1rem;
+}
+
+.alert {
+    padding: 0.8em 1em;
+    margin-bottom: 1rem;
+    border-radius: 4px;
+}
+
+.alert-success {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.alert-danger {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.confirm-form {
+    margin-top: 10px;
 }

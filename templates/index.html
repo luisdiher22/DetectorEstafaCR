@@ -6,6 +6,7 @@
     <title>Detector de Estafas</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <main class="container">
@@ -20,18 +21,18 @@
         <h1>Detector de Estafas</h1>
 
         <form action="{{ url_for('check_scam') }}" method="POST">
-            <div>
+            <div class="form-group">
                 <label for="phone_number">Número de teléfono:</label>
                 <input type="number" id="phone_number" name="phone_number" value="{{ previous_phone_number if previous_phone_number is not none else '' }}">
             </div>
-            <br>
-            <div>
+
+            <div class="form-group">
                 <label for="text_message">Mensaje:</label>
                 <textarea id="text_message" name="text_message" rows="4" cols="50">{{ previous_text_message if previous_text_message is not none else '' }}</textarea>
             </div>
-            <br>
-            <div>
-                <button type="submit">Verificar mensaje</button>
+
+            <div class="form-group">
+                <button type="submit" class="btn-primary">Verificar mensaje</button>
             </div>
             <p class="info">Esta herramienta compara el número y el mensaje ingresados con reportes previos de estafas. El análisis incluye la búsqueda de palabras clave, frases típicas y información del remitente que comúnmente se asocian con campañas de estafas conocidas, para indicarte si el mensaje es sospechoso.</p>
         </form>
@@ -43,7 +44,7 @@
         </div>
 
         {% if last_message_id %} {# Only show if we have an ID for the last message #}
-            <form method="POST" action="{{ url_for('confirm_scam', message_id=last_message_id) }}" style="margin-top: 10px;">
+            <form method="POST" action="{{ url_for('confirm_scam', message_id=last_message_id) }}" class="confirm-form">
                 <button type="submit" class="btn btn-danger btn-sm">Confirmar que ESTE mensaje es Estafa</button>
             </form>
         {% endif %}
